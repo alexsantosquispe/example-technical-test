@@ -1,78 +1,15 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import "./App.css";
-import { SORT_BY, type SortBy, type User, type UsersResponse } from "./types";
-
-interface UserListProps {
-  users: User[];
-  showColors: boolean;
-  onDeleteUser: (userId: string) => void;
-  currentSortBy: SortBy;
-  handleOnChangeSort: (sortByValue: SortBy) => void;
-}
-
-const UsersList = ({
-  users,
-  showColors,
-  onDeleteUser,
-  currentSortBy,
-  handleOnChangeSort
-}: UserListProps) => {
-  const handleSortByValue = (columnValue: SortBy) => () => {
-    const sortByValue =
-      currentSortBy === columnValue ? SORT_BY.NONE : columnValue;
-    handleOnChangeSort(sortByValue);
-  };
-
-  return (
-    <table width={"100%"}>
-      <thead>
-        <tr>
-          <th>Foto</th>
-          <th
-            className="pointer"
-            onClick={handleSortByValue(SORT_BY.FIRST_NAME)}
-          >
-            Nombre
-          </th>
-          <th
-            className="pointer"
-            onClick={handleSortByValue(SORT_BY.LAST_NAME)}
-          >
-            Apellido
-          </th>
-          <th className="pointer" onClick={handleSortByValue(SORT_BY.COUNTRY)}>
-            Pais
-          </th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody className={showColors ? "table--showColors" : ""}>
-        {users.map((user) => (
-          <tr key={user.login.uuid}>
-            <td>
-              <img src={user.picture.thumbnail} alt={user.name.first} />
-            </td>
-            <td>{user.name.first}</td>
-            <td>{user.name.last}</td>
-            <td>{user.location.country}</td>
-            <td>
-              <button onClick={() => onDeleteUser(user.login.uuid)}>
-                Borrar
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-};
+import { SORT_BY, type SortBy, type User } from "./types";
+import { UsersList } from "./components/UsersList";
+import { useUsers } from "./hooks/useUsers";
 
 function App() {
-  const [users, setUsers] = useState<User[]>([]);
+  const { users, isLoading, fetchNextPage, hasNextPage, refetch } = useUsers();
+
   const [showColors, setShowColors] = useState(false);
   const [sortBy, setSortby] = useState<SortBy>(SORT_BY.NONE);
   const [filterByCountry, setFilterByCountry] = useState("");
-  const originalUsers = useRef<User[]>([]);
 
   const toggleColors = () => {
     setShowColors((prev) => !prev);
@@ -109,12 +46,13 @@ function App() {
   }, [sortBy, filteredUsers]);
 
   const deleteUser = (userId: string) => {
-    const filteredUsers = users.filter((user) => userId !== user.login.uuid);
-    setUsers(filteredUsers);
+    //TODO: Implement logic to delete a user.
+    // const filteredUsers = users.filter((user) => userId !== user.email);
+    // setUsers(filteredUsers);
   };
 
   const resetInitialState = () => {
-    setUsers(originalUsers.current);
+    refetch();
   };
 
   const onFilterByCountry = (e: ChangeEvent<HTMLInputElement>) => {
@@ -126,41 +64,54 @@ function App() {
     setSortby(sortByValue);
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const response = await fetch("https://randomuser.me/api/?results=100");
-      const data: UsersResponse = await response.json();
-      originalUsers.current = data.results;
-      setUsers(data.results);
-    };
-
-    fetchData();
-  }, []);
-
   return (
-    <div className="">
+    <div>
       <header>
-        <button onClick={toggleColors}>Colorear Files</button>
-        <button onClick={toggleSortbyCountry}>
-          {sortBy === SORT_BY.COUNTRY
-            ? "No ordenar por País"
-            : "Ordenar por País"}
-        </button>
-        <button onClick={resetInitialState}>Restaurar estado inicial</button>
-        <input
-          type="text"
-          placeholder="Filtrar por país"
-          onChange={onFilterByCountry}
-        />
+        <h1>Technical Test</h1>
+        <div className="header-content">
+          <button onClick={toggleColors}>Colorear Files</button>
+
+          <button onClick={toggleSortbyCountry}>
+            {sortBy === SORT_BY.COUNTRY
+              ? "No ordenar por País"
+              : "Ordenar por País"}
+          </button>
+
+          <button onClick={resetInitialState}>Restaurar estado inicial</button>
+
+          <input
+            type="text"
+            placeholder="Filtrar por país"
+            onChange={onFilterByCountry}
+          />
+        </div>
       </header>
       <main>
-        <UsersList
-          users={sortedUsersByValue}
-          showColors={showColors}
-          onDeleteUser={deleteUser}
-          currentSortBy={sortBy}
-          handleOnChangeSort={handleOnChangeSort}
-        />
+        {!isLoading && users.length && (
+          <UsersList
+            users={sortedUsersByValue}
+            showColors={showColors}
+            onDeleteUser={deleteUser}
+            currentSortBy={sortBy}
+            handleOnChangeSort={handleOnChangeSort}
+          />
+        )}
+
+        {isLoading && <span>Cargando usuarios...</span>}
+
+        {!isLoading && users.length === 0 && <span>No hay usuarios</span>}
+
+        {hasNextPage && (
+          <button
+            className="loadButton"
+            onClick={() => {
+              fetchNextPage();
+            }}
+          >
+            Cargar más usuarios
+          </button>
+        )}
+        {!hasNextPage && <span>No hay mas resultados</span>}
       </main>
     </div>
   );

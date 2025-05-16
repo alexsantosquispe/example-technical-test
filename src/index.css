@@ -54,7 +54,7 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-header {
+.header-content {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -76,6 +76,10 @@ input {
 
 .table--showColors tr:nth-child(even) {
   background-color: #555;
+}
+
+.loadButton {
+  margin-top: 1rem;
 }
 
 @media (prefers-color-scheme: light) {
